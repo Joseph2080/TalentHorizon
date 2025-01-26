@@ -1,0 +1,22 @@
+# Ignore node_modules folder
+node_modules/
+.idea
+# Ignore .env files (for sensitive environment variables)
+.env
+
+# Ignore .env.* files (e.g., .env.development, .env.production)
+.env.*
+
+# Optional: Ignore log files (e.g., if using console logs or other logs)
+*.log
+
+# Optional: Ignore the build directory (if applicable)
+build/
+dist/
+
+# Optional: Ignore temporary files created by editors (e.g., VSCode)
+.vscode/
+
+# Optional: Ignore npm-debug logs
+npm-debug.log
+.vercel
