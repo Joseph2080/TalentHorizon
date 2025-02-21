@@ -20,3 +20,5 @@ dist/
 # Optional: Ignore npm-debug logs
 npm-debug.log
 .vercel
+vercel.json
+package-lock.json

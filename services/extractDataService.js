@@ -1,55 +1,59 @@
 const fs = require("fs");
 const xlsx = require("node-xlsx").default;
 
-function extractData(filePath) {
+function validateFile(filePath) {
     if (!fs.existsSync(filePath)) {
         throw new Error(`Excel file not found at ${filePath}`);
     }
     console.log("File found at", filePath);
+}
 
-    const worksheet = xlsx.parse(filePath);
-    const sheet = worksheet[0];
-    console.log("Sheet Name:", sheet.name);
+function loadWorksheet(filePath) {
+    const sheets = xlsx.parse(filePath);
+    if (!sheets.length) {
+        throw new Error("No sheets found in the Excel file.");
+    }
+    console.log("Sheet Name:", sheets[0].name);
+    return sheets[0].data;
+}
 
-    const data = sheet.data;
-
-    const headerRowIndex = data.findIndex(row => row.includes("HDI rank"));
-    if (headerRowIndex === -1) {
+function getHeaderRowIndex(data, headerLabel) {
+    const index = data.findIndex(row => row.includes(headerLabel));
+    if (index === -1) {
         throw new Error("Header row not found. Please check the Excel file structure.");
     }
+    return index;
+}
 
-    const headers = data[headerRowIndex];
-    const rows = data.slice(headerRowIndex + 1); // The actual data starts after the header row
-
-    console.log("Headers Identified:", headers);
-
-    // Directly map column indexes for each value
+function extractJsonData(data) {
     const columnIndexes = {
-        hdiRank: 0, // HDI Rank is in the first column
-        country: 1, // Country is in the second column
-        hdi: 2, // HDI Value is in the third column
-        lifeExpectancy: 4, // Life Expectancy is in the 5th column (Index 4)
-        expectedYearsOfSchooling: 6, // Expected years of schooling is in the 6th column (Index 5)
-        meanYearsOfSchooling: 8, // Mean years of schooling is in the 7th column (Index 6)
-        gniPerCapita: 10, // GNI per capita is in the 8th column (Index 7)
-        gniRankDifference: 12 // GNI rank difference is in the 9th column (Index 8)
+        hdiRank: 0, // HDI Rank (first column)
+        country: 1, // Country name (second column)
+        hdi: 2, // Human Development Index (third column)
+        lifeExpectancy: 4, // Life expectancy at birth (fifth column)
+        expectedYearsOfSchooling: 6, // Expected years of schooling (seventh column)
+        meanYearsOfSchooling: 8, // Mean years of schooling (ninth column)
+        gniPerCapita: 10, // Gross National Income per capita (eleventh column)
+        gniRankDifference: 12 // GNI rank minus HDI rank (thirteenth column)
     };
 
-    const jsonData = rows
-        .filter(row => row.length > 0) // Filter out rows that are empty or invalid
-        .map(row => {
-            return {
-                hdiRank: row[columnIndexes.hdiRank] || "Unknown",
-                country: row[columnIndexes.country] || "Unknown", // Get the country from the same row as the data
-                hdi: row[columnIndexes.hdi] || "Unknown", // HDI value column
-                lifeExpectancy: row[columnIndexes.lifeExpectancy] || "Unknown",
-                expectedYearsOfSchooling: row[columnIndexes.expectedYearsOfSchooling] || "Unknown",
-                meanYearsOfSchooling: row[columnIndexes.meanYearsOfSchooling] || "Unknown",
-                gniPerCapita: row[columnIndexes.gniPerCapita] || "Unknown",
-                gniRankDifference: row[columnIndexes.gniRankDifference] || "Unknown",
-            };
-        });
-    return jsonData;
+    return data
+        .filter(row => row.length > 0)
+        .map(row => mapRowToObject(row, columnIndexes));
+}
+
+function mapRowToObject(row, columnIndexes) {
+    return Object.fromEntries(
+        Object.entries(columnIndexes).map(([key, index]) => [key, row[index] || "unknown"])
+    );
+}
+
+function extractData(filePath) {
+    validateFile(filePath);
+    const data = loadWorksheet(filePath);
+    const headerRowIndex = getHeaderRowIndex(data, "HDI rank");
+    const rows = data.slice(headerRowIndex + 1);
+    return extractJsonData(rows);
 }
 
 module.exports = { extractData };

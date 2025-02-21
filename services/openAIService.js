@@ -1,24 +1,25 @@
-require('dotenv').config(); // Load environment variables from .env
-
-const { OpenAI } = require("openai");
+require('dotenv').config();
+const {OpenAI} = require("openai");
 
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY, // Ensure the API key is loaded
+    apiKey: process.env.OPENAI_API_KEY,
 });
 
 async function analyzeData(prompt) {
+    console.log(`Analyzing data: ${prompt} ...`);
+
     try {
-        console.log("Analyzing prompt:", prompt);
         const response = await openai.chat.completions.create({
             model: "gpt-3.5-turbo",
-            messages: [{ role: "developer", content: prompt }],
+            messages: [{role: "user", content: prompt}], // Corrected role to 'user'
             max_tokens: 1000,
         });
-        return response.choices[0].message.content.trim(); // Return the response text
+
+        return response.choices?.[0]?.message?.content?.trim() || ""; // Handle potential undefined values
     } catch (error) {
-        console.error("Error analyzing data:", error.response || error.message);
-        throw error;
+        console.error("Error analyzing data:", error.response?.data || error.message);
+        throw new Error("Failed to analyze data. Please try again later.");
     }
 }
 
-module.exports = { analyzeData };
+module.exports = {analyzeData};
