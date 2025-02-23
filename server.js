@@ -6,14 +6,15 @@ const cors = require('cors');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const {
-    filterDataBasedOnWorkloadAndBudget,
+    filterDataByOnWorkloadAndBudget,
     filterDataByEducationLevel,
-    filterDataBasedOnConnectivity
+    filterDataByOnConnectivity
 } = require("./services/filterDataService");
 const {extractData} = require("./services/extractDataService");
 const {transformData} = require("./services/util/util");
 const {analyzeData} = require("./services/openAIService");
 const {prompt} = require("./config/promptConfig");
+const {hdiColumnIndexes} = require("./config/appConfig");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,10 +28,11 @@ const swaggerOptions = {
             description: 'API for analyzing and filtering talent data based on various parameters.',
         },
     },
-    apis: ['./server.js'], // Path to the API docs
+    apis: ['./server.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
+const dataFilePath = path.join(__dirname, "data", "HDR23-24_Statistical_Annex_HDI_Table.xlsx");
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -68,26 +70,9 @@ app.use(bodyParser.json());
  */
 app.post('/talent-analysis', (req, res) => {
     try {
-        const {budgetThreshold, workloadThreshold, educationLevel, connectivityLevel} = req.body;
-
-        if (!budgetThreshold || !workloadThreshold || !educationLevel || !connectivityLevel) {
-            return res.status(400).json({error: "Missing required fields: budget, workload, educationLevel, connectivityLevel"});
-        }
-
-        const dataFilePath = path.join(__dirname, "data", "HDR23-24_Statistical_Annex_HDI_Table.xlsx");
-        const hdiData = extractData(dataFilePath);
-        console.log("$hdiData = ", hdiData);
-        const resultByWorkloadAndBudget = filterDataBasedOnWorkloadAndBudget(hdiData, workloadThreshold, budgetThreshold);
-        console.log("$resultByWorkloadAndBudget = ", resultByWorkloadAndBudget);
-        const resultByEducationLevel = filterDataByEducationLevel(resultByWorkloadAndBudget, educationLevel);
-        console.log("$resultByEducationLevel = ", resultByEducationLevel);
-        const resultByConnectivity = filterDataBasedOnConnectivity(resultByEducationLevel, connectivityLevel);
-        console.log("$resultByConnectivity = ", resultByConnectivity);
-        const result = transformData(resultByConnectivity);
-        const cleanResults = cleanUpData(result);
+        const results = talentAnalysis(req.body);
         res.status(200).json({
-            workforce: workloadThreshold,
-            cleanResults
+            results
         });
     } catch (error) {
         console.error("Error in /talent-analysis endpoint:", error);
@@ -95,18 +80,12 @@ app.post('/talent-analysis', (req, res) => {
     }
 });
 
-function cleanUpData(data) {
-    return data.filter(item => {
-        return !Object.values(item).some(value => value.toString().toLowerCase() === 'unknown');
-    })
-}
-
 /**
  * @swagger
- * /deep-analysis:
+ * /comprehensive-analysis:
  *   post:
- *     summary: Perform a deep analysis on the provided talent data.
- *     description: Analyzes the given data and provides insights using AI-powered analysis.
+ *     summary: Perform a comprehensive talent analysis with AI insights.
+ *     description: Filters, cleans, and deeply analyzes talent data based on the provided parameters.
  *     requestBody:
  *       required: true
  *       content:
@@ -114,24 +93,61 @@ function cleanUpData(data) {
  *           schema:
  *             type: object
  *             properties:
- *               data:
- *                 type: object
+ *               budgetThreshold:
+ *                 type: integer
+ *               workloadThreshold:
+ *                 type: integer
+ *               educationLevel:
+ *                 type: string
+ *               connectivityLevel:
+ *                 type: string
  *     responses:
  *       200:
- *         description: Successful response with analysis data.
+ *         description: Successful response with AI-analyzed talent data.
+ *       400:
+ *         description: Missing required fields.
  *       500:
  *         description: Internal server error.
  */
-app.post('/deep-analysis', async (req, res) => {
+app.post('/comprehensive-analysis', async (req, res) => {
     try {
-        const data = req.body;
-        const analysis = await analyzeData(prompt(data));
-        res.status(200).json({success: true, data: analysis});
+        const results = talentAnalysis(req.body);
+        const analysis = await analyzeData(prompt(results));
+        res.status(200).json({
+            analysis
+        });
     } catch (error) {
-        console.error("Error in /deep-analysis endpoint:", error.message);
-        res.status(500).json({success: false, error: "Failed to analyze data. Please try again."});
+        console.error("Error in /comprehensive-analysis endpoint:", error);
+        res.status(500).json({error: "Internal server error"});
     }
 });
+
+function talentAnalysis(requestBody) {
+    validateRequestBody(requestBody);
+    const hdiData = extractData(dataFilePath, hdiColumnIndexes);
+    return processTalentData(hdiData, requestBody);
+}
+
+function cleanUpData(data) {
+    return data.filter(item => {
+        return !Object.values(item).some(value => value.toString().toLowerCase() === 'unknown');
+    })
+}
+
+function processTalentData(hdiData, {budgetThreshold, workloadThreshold, educationLevel, connectivityLevel}) {
+    let filteredData = filterDataByOnWorkloadAndBudget(hdiData, workloadThreshold, budgetThreshold);
+    filteredData = filterDataByEducationLevel(filteredData, educationLevel);
+    filteredData = filterDataByOnConnectivity(filteredData, connectivityLevel);
+    const transformedData = transformData(filteredData);
+    return cleanUpData(transformedData);
+}
+
+function validateRequestBody(requestBody) {
+    const {budgetThreshold, workloadThreshold, educationLevel, connectivityLevel} = requestBody;
+    if (!budgetThreshold || !workloadThreshold || !educationLevel || !connectivityLevel) {
+        return res.status(400).json({error: "Missing required fields: budget, workload, educationLevel, connectivityLevel"});
+    }
+}
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

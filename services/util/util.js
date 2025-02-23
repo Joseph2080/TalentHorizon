@@ -13,20 +13,6 @@ function getConnectivityLevel(hdi) {
     }
 }
 
-function getEducationLevel(educationLevel) {
-    const level = educationLevel.toLowerCase();
-    switch (level) {
-        case 'high':
-            return level === 'high';
-        case 'medium':
-            return level === 'medium';
-        case 'low':
-            return level === 'low';
-        default:
-            return false;
-    }
-}
-
 /**
  * Categorizes the education level based on mean years of schooling.
  * @param {number|string} meanYears - Mean years of schooling in the country.

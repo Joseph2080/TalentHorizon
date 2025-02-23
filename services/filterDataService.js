@@ -1,6 +1,6 @@
 const {getEducationCategory, getConnectivityLevel} = require("./util/util");
 
-function filterDataBasedOnConnectivity(data, expectedConnectivityLevel) {
+function filterDataByOnConnectivity(data, expectedConnectivityLevel) {
     return data.filter(item => {
         const hdi = parseFloat(item.hdi);
         const connectivityLevel = getConnectivityLevel(hdi);
@@ -8,7 +8,7 @@ function filterDataBasedOnConnectivity(data, expectedConnectivityLevel) {
     });
 }
 
-function filterDataBasedOnWorkloadAndBudget(data, workloadThreshold, hiringBudgetThreshold) {
+function filterDataByOnWorkloadAndBudget(data, workloadThreshold, hiringBudgetThreshold) {
     const threshold = hiringBudgetThreshold / workloadThreshold;
     return data.filter(item => {
         const gniPerCapita = parseFloat(item.gniPerCapita);
@@ -33,4 +33,4 @@ function filterDataByEducationLevel(data, educationLevel) {
     });
 }
 
-module.exports = {filterDataBasedOnWorkloadAndBudget, filterDataBasedOnConnectivity, filterDataByEducationLevel};
+module.exports = {filterDataByOnWorkloadAndBudget, filterDataByOnConnectivity, filterDataByEducationLevel};
