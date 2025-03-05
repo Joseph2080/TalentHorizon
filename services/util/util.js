@@ -4,13 +4,7 @@
  * @returns {string} - "High", "Medium", or "Low" connectivity based on the HDI.
  */
 function getConnectivityLevel(hdi) {
-    if (hdi >= 0.8) {
-        return 'high';
-    } else if (hdi >= 0.5) {
-        return 'medium';
-    } else {
-        return 'low';
-    }
+    return hdi >= 0.8 ? 'high' : hdi >= 0.5 ? 'medium' : 'low';
 }
 
 /**
@@ -19,14 +13,8 @@ function getConnectivityLevel(hdi) {
  * @returns {string} - "High", "Medium", or "Low" education level based on the years of schooling.
  */
 function getEducationCategory(meanYears) {
-    const mean = parseFloat(meanYears);
-    if (mean >= 12) {
-        return 'high';
-    } else if (mean >= 8) {
-        return 'medium';
-    } else {
-        return 'low';
-    }
+    const mean = Number(meanYears);
+    return mean >= 12 ? 'high' : mean >= 8 ? 'medium' : 'low';
 }
 
 /**
@@ -35,19 +23,12 @@ function getEducationCategory(meanYears) {
  * @returns {Array} - Transformed data with the categories and income.
  */
 function transformData(data) {
-    return data.map(item => {
-        const country = item.country;
-        const averageIncomeYearly = item.gniPerCapita; // GNI per capita as the average income
-        const connectivity = getConnectivityLevel(item.hdi); // Connectivity based on HDI
-        const education = getEducationCategory(item.meanYearsOfSchooling); // Education based on mean years of schooling
-
-        return {
-            country,
-            averageIncomeYearly,
-            connectivity,
-            education
-        };
-    });
+    return data.map(({country, gniPerCapita, hdi, meanYearsOfSchooling}) => ({
+        country,
+        averageIncomeYearly: gniPerCapita,
+        connectivity: getConnectivityLevel(hdi),
+        education: getEducationCategory(meanYearsOfSchooling)
+    }));
 }
 
 module.exports = {transformData, getConnectivityLevel, getEducationCategory};

@@ -17,19 +17,10 @@ function filterDataByOnWorkloadAndBudget(data, workloadThreshold, hiringBudgetTh
 }
 
 function filterDataByEducationLevel(data, educationLevel) {
-    return data.filter(item => {
-        const meanYearsOfSchooling = parseFloat(item.meanYearsOfSchooling);
-        const educationCategory = getEducationCategory(meanYearsOfSchooling);
-        switch (educationLevel.toLowerCase()) {
-            case 'high':
-                return educationCategory === 'high';
-            case 'medium':
-                return educationCategory === 'medium';
-            case 'low':
-                return educationCategory === 'low';
-            default:
-                return false;
-        }
+    const level = educationLevel.toLowerCase();
+    return data.filter(({ meanYearsOfSchooling }) => {
+        const category = getEducationCategory(parseFloat(meanYearsOfSchooling));
+        return category === level;
     });
 }
 
